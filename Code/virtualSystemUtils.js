@@ -19,7 +19,7 @@ startup = path in fileSystem to JSON file: [command 1, ...]
 var virtualSystemUtils = {
 	cookieDisk: (cookie) => {
 
-		Object.assign(this, {
+		Object.assign(virtualSystemUtils.cookieDisk, {
 			"alias": cookie,
 			setResource: function(path, content) {
 
@@ -27,14 +27,18 @@ var virtualSystemUtils = {
 					path.trim().substring(0, path.length - 1) :
 					path.trim();
 
-				let data = window.localStorage.getItem(this.alias);
+				let data = window.localStorage.getItem(
+					virtualSystemUtils.cookieDisk.alias
+				);
 
 				if(data == null)
 					data = "{}";
 
 				if(path.trim() == "" && content == null) {
 
-					window.localStorage.setItem(this.alias, "{}");
+					window.localStorage.setItem(
+						virtualSystemUtils.cookieDisk.alias, "{}"
+					);
 
 					return;
 				}
@@ -59,7 +63,9 @@ var virtualSystemUtils = {
 				else
 					delete current[path[path.length - 1]];
 
-				window.localStorage.setItem(this.alias, JSON.stringify(data));
+				window.localStorage.setItem(
+					virtualSystemUtils.cookieDisk.alias, JSON.stringify(data)
+				);
 			},
 			getResource: function(path) {
 
@@ -67,7 +73,9 @@ var virtualSystemUtils = {
 					path.trim().substring(0, path.length - 1) :
 					path.trim();
 
-				let data = window.localStorage.getItem(this.alias);
+				let data = window.localStorage.getItem(
+					virtualSystemUtils.cookieDisk.alias
+				);
 
 				if(data == null) {
 
@@ -103,7 +111,9 @@ var virtualSystemUtils = {
 			},
 			serialize: function() {
 
-				let data = window.localStorage.getItem(this.alias);
+				let data = window.localStorage.getItem(
+					virtualSystemUtils.cookieDisk.alias
+				);
 
 				return data != null ? JSON.parse(data) : { };
 			}
@@ -266,7 +276,7 @@ var virtualSystemUtils = {
 	},
 	httpDisk: () => {
 
-		Object.assign(this, {
+		Object.assign(virtualSystemUtils.httpDisk, {
 			"alias": "http",
 			setResource: function(path, content) {
 
@@ -288,7 +298,7 @@ var virtualSystemUtils = {
 	},
 	httpsDisk: () => {
 
-		Object.assign(this, {
+		Object.assign(virtualSystemUtils.httpsDisk, {
 			"alias": "https",
 			setResource: function(path, content) {
 
@@ -457,21 +467,31 @@ var virtualSystemUtils = {
 	},
 	virtualFileSystem: (disks) => {
 
-		Object.assign(this, {
+		Object.assign(virtualSystemUtils.virtualFileSystem, {
 			"disks": disks,
 			"executeCommand": virtualSystemUtils.executeCommand,
 			setResource: function(path, content) {
 
 				if(path.trim() == "" && content == null) {
 
-					for(let i = 0; i < this.disks.length; i++)
+					for(
+						let i = 0;
+						i < virtualSystemUtils.virtualFileSystem.disks.length;
+						i++
+					) {
+
 						disks[i].setResource(path, content);
+					}
 				}
 
 				let alias = path.substring(0, path.indexOf(":"));
 				path = path.substring(path.indexOf(":") + 3);
 
-				for(let i = 0; i < this.disks.length; i++) {
+				for(
+					let i = 0;
+					i < virtualSystemUtils.virtualFileSystem.disks.length;
+					i++
+				) {
 
 					if(disks[i].alias.toLowerCase() == alias.toLowerCase()) {
 
@@ -487,8 +507,16 @@ var virtualSystemUtils = {
 					
 					let aliases = [];
 
-					for(let i = 0; i < this.disks.length; i++)
-						aliases.push(this.disks[i].alias);
+					for(
+						let i = 0;
+						i < virtualSystemUtils.virtualFileSystem.disks.length;
+						i++
+					) {
+
+						aliases.push(
+							virtualSystemUtils.virtualFileSystem.disks[i].alias
+						);
+					}
 
 					return [aliases, []];
 				}
@@ -505,7 +533,11 @@ var virtualSystemUtils = {
 					path = "";
 				}
 
-				for(let i = 0; i < this.disks.length; i++) {
+				for(
+					let i = 0;
+					i < virtualSystemUtils.virtualFileSystem.disks.length;
+					i++
+				) {
 
 					if(disks[i].alias.toLowerCase() == alias.toLowerCase())
 						return disks[i].getResource(path);
