@@ -103,3 +103,11 @@ content to be overlaid.
 
 A virtual system hook (VSH) is an event listener which triggers an event when a specific resource
 or set of resources within a virtual system is altered.
+
+#### 2.1.5 - Meta Models
+
+Meta models are model which contextualize a disparate set of records and databases by serializing
+them within, or referencing them from, a hierarchical structure, such as a file system where said
+elements are represented as files.
+
+Virtual systems may be used for this purpose.
