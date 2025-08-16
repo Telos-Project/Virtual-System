@@ -60,6 +60,18 @@ In browsers, it is, by default, stored as a VSF string in window.localStorage un
 
 #### 2.1.2 - Format
 
+##### 2.1.2.1 - Meta JSON
+
+Meta JSON is a JSON object format for assigning properties to JSON content without embedding said
+properties into the content itself.
+
+A meta JSON object has two fields, "content", containing a JSON object or list, and "metadata",
+containing a list of metadata objects. Metadata objects have two fields, "selector", containing a
+JSON selector format object for selecting values within the aforementioned content, and
+"properties", containing a miscellaneous value to associate with the selected values.
+
+##### 2.1.2.2 - Virtual System Format (VSF)
+
 The virtual system format (VSF) is a JSON format used to serialize the structure of a file system
 and, to varying degrees, its contents.
 
@@ -83,8 +95,7 @@ specifies whether the external resource in VSF format, with it being true if so 
 otherwise.
 
 Additional metadata may be assigned to files and folders stored or referenced in a VSF object using
-[meta JSON](https://github.com/Telos-Project/OmniCRUD?tab=readme-ov-file#212---meta-json) where the
-VSF object is the content.
+meta JSON where the VSF object is the content.
 
 #### 2.1.3 - Overlays
 
