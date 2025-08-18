@@ -67,8 +67,8 @@ properties into the content itself.
 
 A meta JSON object has two fields, "content", containing a JSON object or list, and "metadata",
 containing a list of metadata objects. Metadata objects have two fields, "selector", containing a
-JSON selector format object for selecting values within the aforementioned content, and
-"properties", containing a miscellaneous value to associate with the selected values.
+key and index path array for selecting values within the aforementioned content, and "properties",
+containing a miscellaneous value to associate with the selected values.
 
 ##### 2.1.2.2 - Virtual System Format (VSF)
 
