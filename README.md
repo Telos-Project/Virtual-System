@@ -58,19 +58,7 @@ application running the virtual system.
 In browsers, it is, by default, stored as a VSF string in window.localStorage under the alias
 "virtualSystem".
 
-#### 2.1.2 - Format
-
-##### 2.1.2.1 - Meta JSON
-
-Meta JSON is a JSON object format for assigning properties to JSON content without embedding said
-properties into the content itself.
-
-A meta JSON object has two fields, "content", containing a JSON object or list, and "metadata",
-containing a list of metadata objects. Metadata objects have two fields, "selector", containing a
-key and index path array for selecting values within the aforementioned content, and "properties",
-containing a miscellaneous value to associate with the selected values.
-
-##### 2.1.2.2 - Virtual System Format (VSF)
+#### 2.1.2 - Virtual System Format (VSF)
 
 The virtual system format (VSF) is a JSON format used to serialize the structure of a file system
 and, to varying degrees, its contents.
@@ -95,7 +83,8 @@ specifies whether the external resource in VSF format, with it being true if so 
 otherwise.
 
 Additional metadata may be assigned to files and folders stored or referenced in a VSF object using
-meta JSON where the VSF object is the content.
+[dynamic metadata](https://github.com/Telos-Project/OmniQuery?tab=readme-ov-file#21113---dynamic-metadata)
+where the VSF object is the content.
 
 #### 2.1.3 - Overlays
 
@@ -114,11 +103,3 @@ content to be overlaid.
 
 A virtual system hook (VSH) is an event listener which triggers an event when a specific resource
 or set of resources within a virtual system is altered.
-
-#### 2.1.5 - Meta Models
-
-Meta models are model which contextualize a disparate set of records and databases by serializing
-them within, or referencing them from, a hierarchical structure, such as a file system where said
-elements are represented as files.
-
-Virtual systems may be used for this purpose.
