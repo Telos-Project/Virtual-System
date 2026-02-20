@@ -60,31 +60,11 @@ In browsers, it is, by default, stored as a VSF string in window.localStorage un
 
 #### 2.1.2 - Virtual System Format (VSF)
 
-The virtual system format (VSF) is a JSON format used to serialize the structure of a file system
-and, to varying degrees, its contents.
+The virtual system format (VSF) is an [APInt mask](https://github.com/Telos-Project/APInt?tab=readme-ov-file#23---apint-masks)
+which allows "folders" to be used in place of "packages", and "files" to be used in place of
+"utilities".
 
-A folder may be represented in VSF using an object, where every field represents an entity in the
-folder.
-
-A field containing another folder object represents a folder where the key is the folder name and
-the value is the folder content.
-
-A field containing a string represents a file where the key is the file name and the value is the
-file content.
-
-A field containing an array of numbers represents a file where the key is the file name and the
-value is the binary content of the file where each number is the numerical value of the
-corresponding byte.
-
-A field containing an array with a string, or list thereof, as its first element, and a boolean as
-its second, represents an external file or folder where the first element specifies the VSP, or a
-list of potential VSPs in order of priority, to the external resource, and the second argument
-specifies whether the external resource in VSF format, with it being true if so and false
-otherwise.
-
-Additional metadata may be assigned to files and folders stored or referenced in a VSF object using
-[dynamic metadata](https://github.com/Telos-Project/OmniQuery?tab=readme-ov-file#21113---dynamic-metadata)
-where the VSF object is the content.
+VSF is the primary method for serializing virtual systems.
 
 #### 2.1.3 - Overlays
 
@@ -96,8 +76,8 @@ VSO content can, however, be written to disk and permanently overlaid atop the f
 the action is manually requested. Additionally, virtual system folders may be overlaid atop other
 folders manually, permanently or not, without the use of VSOs.
 
-A VSO file shall have the ".vso" extension, and shall contain a VSP to a VSF object containing the
-content to be overlaid.
+A VSO file shall have the ".vso" extension, and shall either contain a VSP to a VSF object
+containing the content to be overlaid, or shall itself contain the content of said VSF object.
 
 #### 2.1.4 - Hooks
 
