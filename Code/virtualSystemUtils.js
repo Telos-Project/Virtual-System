@@ -647,7 +647,7 @@ var virtualSystemUtils = {
 				for(let i = 0; i < sections.length; i++) {
 
 					virtualSystemUtils.localDiskOverlay(
-						disk + "://" + sections.slice(0, i).join("/")
+						disk + "://" + sections.slice(0, i + 1).join("/")
 					);
 				}
 
