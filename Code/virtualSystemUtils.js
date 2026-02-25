@@ -1,44 +1,40 @@
 /*
 
-disk = { alias, setResource(path, content), getResource(path) }
-fileSystem = [disk 1, disk 2, ..., disk n]
+	disk = { alias, setResource(path, content), getResource(path) }
+	fileSystem = [disk 1, disk 2, ..., disk n]
 
-command =
+	command =
 
-	(path/)alias arg1 "arg 2" "\"arg \\2\""
+		(path/)alias arg1 "arg 2" "\"arg \\2\""
 
-	Notes
+		Notes
 
-		default path includes "Origin://"
-		default command = execute(.js) "code"
+			default path includes "Origin://"
+			default command = execute(.js) "code"
 
-startup = path in fileSystem to JSON file: [command 1, ...]
+	startup = path in fileSystem to JSON file: [command 1, ...]
 
 */
 
 var virtualSystemUtils = {
 	cookieDisk: (cookie) => {
 
-		Object.assign(virtualSystemUtils.cookieDisk, {
+		return {
 			"alias": cookie,
-			setResource: function(path, content) {
+			setResource: (path, content) => {
 
 				path = path.trim().endsWith("/") ?
 					path.trim().substring(0, path.length - 1) :
 					path.trim();
 
-				let data = window.localStorage.getItem(
-					virtualSystemUtils.cookieDisk.alias
-				);
+				let data = window.localStorage.getItem(cookie);
 
 				if(data == null)
 					data = "{}";
 
 				if(path.trim() == "" && content == null) {
 
-					window.localStorage.setItem(
-						virtualSystemUtils.cookieDisk.alias, "{}"
-					);
+					window.localStorage.setItem(cookie, "{}");
 
 					return;
 				}
@@ -63,19 +59,15 @@ var virtualSystemUtils = {
 				else
 					delete current[path[path.length - 1]];
 
-				window.localStorage.setItem(
-					virtualSystemUtils.cookieDisk.alias, JSON.stringify(data)
-				);
+				window.localStorage.setItem(cookie, JSON.stringify(data));
 			},
-			getResource: function(path) {
+			getResource: (path) => {
 
 				path = path.trim().endsWith("/") ?
 					path.trim().substring(0, path.length - 1) :
 					path.trim();
 
-				let data = window.localStorage.getItem(
-					virtualSystemUtils.cookieDisk.alias
-				);
+				let data = window.localStorage.getItem(cookie);
 
 				if(data == null) {
 
@@ -109,15 +101,19 @@ var virtualSystemUtils = {
 				
 				return result;
 			},
-			serialize: function() {
+			serialize: () => {
 
-				let data = window.localStorage.getItem(
-					virtualSystemUtils.cookieDisk.alias
-				);
+				let data = window.localStorage.getItem(cookie);
 
 				return data != null ? JSON.parse(data) : { };
 			}
-		});
+		};
+	},
+	dependencies: {
+		apint: typeof apintUtils != "undefined" ?
+			apintUtils : require("apint"),
+		autoCORS: typeof autoCORS != "undefined" ?
+			autoCORS : require("telos-autocors")
 	},
 	executeCommand: (command) => {
 
@@ -129,7 +125,7 @@ var virtualSystemUtils = {
 		if(item.indexOf(".") != -1)
 			item = item.substring(0, item.lastIndexOf("."));
 		
-		let data = window.fileSystem.getResource(folder);
+		let data = virtualSystemUtils.fileSystem.getResource(folder);
 
 		for(let i = 0; i < data[1].length; i++) {
 
@@ -143,7 +139,9 @@ var virtualSystemUtils = {
 				if(!folder.endsWith("/"))
 					folder += "/";
 				
-				let file = window.fileSystem.getResource(folder + data[1][i]);
+				let file = virtualSystemUtils.fileSystem.getResource(
+					folder + data[1][i]
+				);
 
 				if(file == null || typeof file == "object")
 					return;
@@ -155,6 +153,7 @@ var virtualSystemUtils = {
 			}
 		}
 	},
+	fileSystem: null,
 	getAbsolutePath: (path, location, paths) => {
 
 		if(paths != null) {
@@ -265,65 +264,170 @@ var virtualSystemUtils = {
 
 		return folder;
 	},
+	getLocalDrives: () => {
+
+		try {
+
+			const platform = require("os").platform();
+
+			if(platform == "win32") {
+
+				let drives = JSON.parse(require("child_process").execSync(
+					`powershell -NoProfile -Command "Get-PSDrive -PSProvider FileSystem | Select -Expand Root | ConvertTo-Json"`,
+					{ encoding: "utf8" }
+				));
+
+				return Array.isArray(drives) ? drives : [drives];
+			}
+
+			return [...new Set(
+				require("child_process").execSync(
+					platform == "darwin" ?
+						`mount | awk '{print $3}'` :
+						`lsblk -ln -o MOUNTPOINT | grep -v '^$'`,
+					{ encoding: "utf8" }
+				).split("\n").map(s => s.trim()).filter(Boolean)
+			)];
+		}
+		
+		catch(error) {
+			return [];
+		}
+	},
 	getResource: (path, content) => {
 
-		let result = window.fileSystem != null ?
-			window.fileSystem.getResource(path, content) :
+		if(!path.includes("://") &&
+			virtualSystemUtils.dependencies.autoCORS.getPlatform() != "browser"
+		) {
+
+			path = (
+				process.cwd() + require("path").sep + path
+			).split(":\\").join("://");
+		}
+
+		let result = virtualSystemUtils.fileSystem != null ?
+			virtualSystemUtils.fileSystem.getResource(path, content) :
 			null;
+
+		if(result == null ? true : Array.isArray(result)) {
+
+			if(virtualSystemUtils.dependencies.autoCORS.getPlatform() !=
+				"browser"
+			) {
+
+				path = require("path").resolve(path).
+					split(":\\").join("://").
+					split("\\").join("/");
+			}
+			
+			Object.keys(virtualSystemUtils.overlayCache.items).forEach(key => {
+
+				if(key.toLowerCase().trim() == path.toLowerCase().trim())
+					result = virtualSystemUtils.overlayCache.items[key];
+
+				else if(key.toLowerCase().trim().startsWith(
+					path.toLowerCase().trim()
+				)) {
+
+					result = result != null ? result : [[], []];
+
+					let item = key.substring(path.length);
+
+					while(item.startsWith("/"))
+						item = item.substring(1);
+					
+					result[item.includes("/") ? 0 : 1].push(
+						item.includes("/") ?
+							item.substring(0, item.indexOf("/")) : item
+					);
+
+					result[item.includes("/") ? 0 : 1] =
+						[...new Set(result[item.includes("/") ? 0 : 1])];
+				}
+			});
+
+			if(result != null)
+				return result;
+		}
 
 		return Array.isArray(result) ?
 			result.map(item => item.sort()) : result;
 	},
+	ghostDisk: () => {
+
+		return {
+			"alias": "Ghost",
+			cache: { },
+			setResource: (path, content) => {
+				// STUB
+			},
+			getResource: (path) => {
+
+				// STUB
+
+				return null;
+			},
+			serialize: () => {
+				return { };
+			}
+		};
+	},
 	httpDisk: () => {
 
-		Object.assign(virtualSystemUtils.httpDisk, {
+		return {
 			"alias": "http",
-			setResource: function(path, content) {
+			setResource: (path, content) => {
 
 			},
-			getResource: function(path) {
+			getResource: (path) => {
 
 				try {
-					return virtualSystemUtils.open("http://" + path);
+
+					return virtualSystemUtils.dependencies.autoCORS.read(
+						"http://" + path
+					);
 				}
 
 				catch(error) {
 					return null;
 				}
 			},
-			serialize: function() {
+			serialize: () => {
 				return { };
 			}
-		});
+		};
 	},
 	httpsDisk: () => {
 
-		Object.assign(virtualSystemUtils.httpsDisk, {
+		return {
 			"alias": "https",
-			setResource: function(path, content) {
+			setResource: (path, content) => {
 
 			},
-			getResource: function(path) {
+			getResource: (path) => {
 
 				try {
-					return virtualSystemUtils.open("https://" + path);
+
+					return virtualSystemUtils.dependencies.autoCORS.read(
+						"https://" + path
+					);
 				}
 
 				catch(error) {
 					return null;
 				}
 			},
-			serialize: function() {
+			serialize: () => {
 				return { };
 			}
-		});
+		};
 	},
 	initiateVirtualSystem: (fileSystem, config) => {
 
-		if(window.fileSystem != null)
+		if(virtualSystemUtils.fileSystem != null)
 			return;
 
-		window.fileSystem = fileSystem;
+		virtualSystemUtils.fileSystem = fileSystem;
 
 		virtualSystemUtils.load(config);
 	},
@@ -331,22 +435,37 @@ var virtualSystemUtils = {
 
 		try {
 
-			if(window.fileSystem != null)
+			if(virtualSystemUtils.fileSystem != null)
 				return;
+
+			let platform =
+				virtualSystemUtils.dependencies.autoCORS.getPlatform();
 		
-			cookieName = cookieName != null ? cookieName : "Storage";
-		
-			let fileSystem = new virtualSystemUtils.virtualFileSystem(
+			let fileSystem = virtualSystemUtils.virtualFileSystem(
 				[
-					new virtualSystemUtils.cookieDisk(cookieName),
-					new virtualSystemUtils.httpDisk(),
-					new virtualSystemUtils.httpsDisk()
-				]
+					virtualSystemUtils.ghostDisk(),
+					virtualSystemUtils.httpDisk(),
+					virtualSystemUtils.httpsDisk()
+				].concat(
+					platform == "browser" ?
+						[virtualSystemUtils.cookieDisk(
+							cookieName != null ? cookieName : "Storage"
+						)] :
+						virtualSystemUtils.getLocalDrives().map(
+							item => virtualSystemUtils.localDisk(
+								item.includes(":") ?
+									item.substring(0, item.indexOf(":")) : item
+							)
+						)
+				)
 			);
-		
-			fileSystem.setResource(
-				"Storage://execute.js", "eval(arguments[0]);"
-			);
+
+			if(platform == "browser") {
+
+				fileSystem.setResource(
+					"Storage://execute.js", "eval(arguments[0]);"
+				);
+			}
 			
 			virtualSystemUtils.initiateVirtualSystem(fileSystem, config);
 		}
@@ -354,6 +473,31 @@ var virtualSystemUtils = {
 		catch(error) {
 
 		}
+	},
+	isBinaryFile: (path, bytesToCheck = 8000) => {
+
+		const buffer = require("fs").readFileSync(path);
+		const len = Math.min(buffer.length, bytesToCheck);
+
+		let suspicious = 0;
+
+		for (let i = 0; i < len; i++) {
+
+			const byte = buffer[i];
+
+			if(byte == 0)
+				return true;
+
+			if(byte < 7 || (byte > 14 && byte < 32) || byte > 127) {
+
+				suspicious++;
+				
+				if(suspicious / len > 0.3)
+					return true;
+			}
+		}
+
+		return false;
 	},
 	load: (config) => {
 
@@ -374,7 +518,10 @@ var virtualSystemUtils = {
 				}
 
 				catch(error) {
-					data = JSON.parse(virtualSystemUtils.open(config));
+
+					data = JSON.parse(
+						virtualSystemUtils.dependencies.autoCORS.read(config)
+					);
 				}
 			}
 
@@ -404,7 +551,9 @@ var virtualSystemUtils = {
 				virtualSystemUtils.setResource(
 					item.path,
 					item.location != null ?
-						virtualSystemUtils.open("" + item.location) :
+						virtualSystemUtils.dependencies.autoCORS.read(
+							"" + item.location
+						) :
 						"" + item.content
 				);
 			});
@@ -440,58 +589,251 @@ var virtualSystemUtils = {
 			});
 		}
 	},
-	open: (path, callback) => {
+	localDisk: (disk) => {
 
-		let xhr = new XMLHttpRequest();
-		xhr.open("GET", path, callback != null);
+		return {
+			"alias": disk,
+			setResource: (path, content) => {
 
-		let text = "";
+				path = disk + "://" + path;
 
-		xhr.onreadystatechange = function() {
+				try {
+					
+					if(content == null) {
 
-			if(xhr.readyState === 4) {
+						if(require("fs").existsSync(path))
+							require("fs").rmSync(path);
+					}
 
-				if(xhr.status === 200 || xhr.status == 0) {
+					else {
 
-					text = xhr.responseText;
+						try {
 
-					if(callback != null)
-						callback(text);
+							require("fs").writeFileSync(
+								path,
+								typeof content == "string" ?
+									content :
+									new Uint8Array(
+										Buffer.from(content)
+									)
+							);
+						}
+
+						catch(error) {
+
+							path = require("path").resolve(path).
+								split(":\\").join("://").
+								split("\\").join("/");
+
+							virtualSystemUtils.overlayCache.items[path] =
+								content;
+
+							if(path.toLowerCase().endsWith(".vso"))
+								virtualSystemUtils.overlay(directory, content);
+						}
+					}
 				}
+
+				catch(error) {
+					console.log(error)
+				}
+			},
+			getResource: (path) => {
+
+				let sections = path.split(/\/|\\/).filter(
+					item => item.trim().length > 0
+				);
+
+				for(let i = 0; i < sections.length; i++) {
+
+					virtualSystemUtils.localDiskOverlay(
+						disk + "://" + sections.slice(0, i).join("/")
+					);
+				}
+
+				path = disk + "://" + path;
+
+				try {
+
+					if(!require("fs").existsSync(path))
+						return null;
+
+					if(require("fs").lstatSync(path).isDirectory()) {
+
+						let folder = [[], []];
+
+						require("fs").readdirSync(
+							path, { withFileTypes: true }
+						).forEach(item => {
+							folder[item.isDirectory() ? 0 : 1].push(item.name);
+						});
+
+						return folder;
+					}
+
+					return require("fs").readFileSync(
+						path,
+						virtualSystemUtils.isBinaryFile(path) ? null : "utf-8"
+					);
+				}
+
+				catch(error) {
+					console.log(error);
+				}
+				
+				return null;
+			},
+			serialize: () => {
+
+				// STUB
+
+				return { };
 			}
+		};
+	},
+	localDiskOverlay: (path) => {
+
+		try {
+
+			let directory = require("path").resolve(path);
+
+			let parent = directory.substring(
+				0, directory.lastIndexOf(require("path").sep)
+			);
+
+			if(require("fs").existsSync(directory)) {
+
+				if(!require("fs").lstatSync(directory).isDirectory())
+					directory = parent;
+			}
+
+			else
+				directory = parent;
+
+			require("fs").readdirSync(
+				directory, { withFileTypes: true }
+			).filter(
+				item =>
+					!item.isDirectory() &&
+						item.name.toLowerCase().endsWith(".vso")
+			).map(item => require("path").resolve(
+				directory + require("path").sep + item.name
+			)).forEach(item => {
+
+				let vsoPath = item.
+					split(":\\").join("://").
+					split("\\").join("/");
+
+				if(virtualSystemUtils.overlayCache.VSO.includes(vsoPath))
+					return;
+
+				virtualSystemUtils.overlayCache.VSO.push(vsoPath);
+
+				virtualSystemUtils.overlay(
+					directory.split(":\\").join("://").split("\\").join("/"),
+					require("fs").readFileSync(item, "utf-8")
+				);
+			});
 		}
 
-		xhr.send(null);
+		catch(error) {
 
-		return text;
+		}
+	},
+	overlayCache: {
+		items: {
+			/*
+				item: [2, 1, ...] / "content"
+			*/
+		},
+		VSO: []
+	},
+	overlay: (directory, vso, path) => {
+
+		if(path == null) {
+
+			try {
+				
+				try {
+					vso = JSON.parse(vso);
+				}
+
+				catch(error) {
+
+					vso = JSON.parse(
+						virtualSystemUtils.dependencies.autoCORS.read(vso)
+					);
+				}
+
+				virtualSystemUtils.overlay(
+					directory,
+					virtualSystemUtils.dependencies.apint.buildAPInt(
+						vso,
+						{
+							packages: ["folders"],
+							utilities: ["files"]
+						}
+					),
+					[]
+				);
+			}
+
+			catch(error) {
+				console.log(error);
+			}
+
+			return;
+		}
+
+		Object.keys(
+			vso.utilities != null ? vso.utilities : []
+		).forEach(key => {
+
+			let value = vso.utilities[key];
+
+			key = directory + (
+				"/" + path.join("/") + "/" + key
+			).split("//").join("/");
+
+			if(value.content != null)
+				virtualSystemUtils.overlayCache.items[key] = value.content;
+
+			else if(value.source != null) {
+				
+				virtualSystemUtils.overlayCache.items[key] =
+					virtualSystemUtils.dependencies.autoCORS.read(
+						Array.isArray(value.source) ?
+							value.source[0] : value.source
+					);
+			}
+		});
+
+		Object.keys(vso.packages != null ? vso.packages : []).forEach(key => {
+			
+			virtualSystemUtils.overlay(
+				directory,
+				vso.packages[key],
+				path.concat([key])
+			);
+		});
 	},
 	virtualFileSystem: (disks) => {
 
-		Object.assign(virtualSystemUtils.virtualFileSystem, {
+		return {
 			"disks": disks,
 			"executeCommand": virtualSystemUtils.executeCommand,
-			setResource: function(path, content) {
+			setResource: (path, content) => {
 
 				if(path.trim() == "" && content == null) {
 
-					for(
-						let i = 0;
-						i < virtualSystemUtils.virtualFileSystem.disks.length;
-						i++
-					) {
-
+					for(let i = 0; i < disks.length; i++)
 						disks[i].setResource(path, content);
-					}
 				}
 
 				let alias = path.substring(0, path.indexOf(":"));
 				path = path.substring(path.indexOf(":") + 3);
 
-				for(
-					let i = 0;
-					i < virtualSystemUtils.virtualFileSystem.disks.length;
-					i++
-				) {
+				for(let i = 0; i < disks.length; i++) {
 
 					if(disks[i].alias.toLowerCase() == alias.toLowerCase()) {
 
@@ -501,20 +843,16 @@ var virtualSystemUtils = {
 					}
 				}
 			},
-			getResource: function(path) {
+			getResource: (path) => {
 
 				if(path.trim() == "") {
 					
 					let aliases = [];
 
-					for(
-						let i = 0;
-						i < virtualSystemUtils.virtualFileSystem.disks.length;
-						i++
-					) {
+					for(let i = 0; i < disks.length; i++) {
 
 						aliases.push(
-							virtualSystemUtils.virtualFileSystem.disks[i].alias
+							disks[i].alias
 						);
 					}
 
@@ -533,17 +871,15 @@ var virtualSystemUtils = {
 					path = "";
 				}
 
-				for(
-					let i = 0;
-					i < virtualSystemUtils.virtualFileSystem.disks.length;
-					i++
-				) {
+				for(let i = 0; i < disks.length; i++) {
 
 					if(disks[i].alias.toLowerCase() == alias.toLowerCase())
 						return disks[i].getResource(path);
 				}
 			},
-			serialize: function() {
+			serialize: () => {
+
+				// STUB
 				
 				let data = { };
 
@@ -553,17 +889,38 @@ var virtualSystemUtils = {
 
 				return JSON.stringify(data);
 			}
-		});
+		};
 	},
 	serialize: () => {
-		return window.fileSystem != null ? fileSystem.serialize() : "";
+		return virtualSystemUtils.fileSystem != null ?
+			fileSystem.serialize() : "";
 	},
 	setResource: (path, content) => {
 
-		if(window.fileSystem != null)
-			window.fileSystem.setResource(path, content);
+		if(!path.includes("://") &&
+			virtualSystemUtils.dependencies.autoCORS.getPlatform() != "browser"
+		) {
+
+			path = (
+				process.cwd() + require("path").sep + path
+			).split(":\\").join("://");
+		}
+
+		if(virtualSystemUtils.fileSystem != null)
+			virtualSystemUtils.fileSystem.setResource(path, content);
 	}
 };
 
 if(typeof module == "object")
 	module.exports = virtualSystemUtils;
+
+try {
+
+	if(require.main === module) {
+		// STUB - Permanent VSO Overlay / Save VSO
+	}
+}
+
+catch(error) {
+	console.log(error);
+}
