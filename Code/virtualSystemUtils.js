@@ -627,15 +627,24 @@ var virtualSystemUtils = {
 
 							virtualSystemUtils.overlayCache.items[path] =
 								content;
+						}
 
-							if(path.toLowerCase().endsWith(".vso"))
-								virtualSystemUtils.overlay(directory, content);
+						path = path.
+							split(":\\").join("://").
+							split("\\").join("/");
+
+						if(path.toLowerCase().endsWith(".vso")) {
+
+							virtualSystemUtils.overlay(
+								path.substring(0, path.lastIndexOf("/") + 1),
+								content
+							);
 						}
 					}
 				}
 
 				catch(error) {
-					console.log(error)
+					console.log(error);
 				}
 			},
 			getResource: (path) => {
