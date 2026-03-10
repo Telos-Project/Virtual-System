@@ -33,30 +33,41 @@ file path conventions.
 
 VSPs are case insensitive unless there's a conflict between multiple resources.
 
-##### 2.1.1.1 - Standard Disks
+##### 2.1.1.1 - The Common Storage Convention
 
-##### 2.1.1.1.1 - Ghost Disk
+The common storage convention is for shared processes within a program to store shared state in a
+common global object, deriving what is referred to as the common state from all fields that are not
+present in said object by default.
+
+In the case of a virtual system disk, it shall interpret each field in the common state as a file,
+if said field is a primitve value, or as a folder if not.
+
+##### 2.1.1.2 - Standard Disks
+
+###### 2.1.1.2.1 - Ghost Disk
 
 The ghost disk ("Ghost://") is a disk corresponding to the volatile storage of the application
 running the virtual system, hence its contents will be erased when the application is terminated.
 
-##### 2.1.1.1.2 - HTTP Disks
+The ghost disk uses the common storage convention, using the window object in the browser and the
+global object in node.
+
+###### 2.1.1.2.2 - HTTP Disks
 
 HTTP disks are disks representing the HTTP protocols as disks to make URLs into valid VSPs, being
 "http://" and "https://" respectively.
 
-##### 2.1.1.1.3 - Local Disks
+###### 2.1.1.2.3 - Local Disks
 
 Local disks are disks representing the actual disks on the local file system, sharing the aliases
 of the same ("C://", "D://", etc.).
 
-##### 2.1.1.1.4 - Storage Disk
+###### 2.1.1.2.4 - Storage Disk
 
 The storage disk ("Storage://") is a disk corresponding to the non-volatile storage of the
 application running the virtual system.
 
-In browsers, it is, by default, stored as a VSF string in window.localStorage under the alias
-"virtualSystem".
+The storage disk uses the common storage convention, using the localStorage object in the browser.
 
 #### 2.1.2 - Virtual System Format (VSF)
 
