@@ -280,14 +280,7 @@ var virtualSystemUtils = {
 				return Array.isArray(drives) ? drives : [drives];
 			}
 
-			return [...new Set(
-				require("child_process").execSync(
-					platform == "darwin" ?
-						`mount | awk '{print $3}'` :
-						`lsblk -ln -o MOUNTPOINT | grep -v '^$'`,
-					{ encoding: "utf8" }
-				).split("\n").map(s => s.trim()).filter(Boolean)
-			)];
+			return ["Local"];
 		}
 		
 		catch(error) {
@@ -295,6 +288,9 @@ var virtualSystemUtils = {
 		}
 	},
 	getResource: (path, content) => {
+
+		if(path.startsWith("/"))
+			path = "Local:/" + path;
 
 		if(!path.includes("://") &&
 			virtualSystemUtils.dependencies.autoCORS.getPlatform() != "browser"
@@ -595,7 +591,7 @@ var virtualSystemUtils = {
 			"alias": disk,
 			setResource: (path, content) => {
 
-				path = disk + "://" + path;
+				path = (disk == "Local" ? "/" : disk + "://") + path;
 
 				try {
 					
@@ -656,11 +652,12 @@ var virtualSystemUtils = {
 				for(let i = 0; i < sections.length; i++) {
 
 					virtualSystemUtils.localDiskOverlay(
-						disk + "://" + sections.slice(0, i + 1).join("/")
+						(disk == "Local" ? "/" : disk + "://") +
+							sections.slice(0, i + 1).join("/")
 					);
 				}
 
-				path = disk + "://" + path;
+				path = (disk == "Local" ? "/" : disk + "://") + path;
 
 				try {
 
@@ -833,6 +830,9 @@ var virtualSystemUtils = {
 			"executeCommand": virtualSystemUtils.executeCommand,
 			setResource: (path, content) => {
 
+				if(path.startsWith("/"))
+					path = "Local:/" + path;
+
 				if(path.trim() == "" && content == null) {
 
 					for(let i = 0; i < disks.length; i++)
@@ -853,6 +853,9 @@ var virtualSystemUtils = {
 				}
 			},
 			getResource: (path) => {
+
+				if(path.startsWith("/"))
+					path = "Local:/" + path;
 
 				if(path.trim() == "") {
 					
@@ -905,6 +908,9 @@ var virtualSystemUtils = {
 			fileSystem.serialize() : "";
 	},
 	setResource: (path, content) => {
+
+		if(path.startsWith("/"))
+			path = "Local:/" + path;
 
 		if(!path.includes("://") &&
 			virtualSystemUtils.dependencies.autoCORS.getPlatform() != "browser"
