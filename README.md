@@ -39,8 +39,9 @@ The common storage convention is for shared processes within a program to store 
 common global object, deriving what is referred to as the common state from all fields that are not
 present in said object by default.
 
-In the case of a virtual system disk, it shall interpret each field in the common state as a file,
-if said field is a primitve value, or as a folder if not.
+In the case of a virtual system disk, it shall convert the common state to an APInt using APInt
+JSON conversion, and shall interpret the resulting packages as folders and the resulting utilities
+as files.
 
 ##### 2.1.1.2 - Standard Disks
 
